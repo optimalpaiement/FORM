@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merchant Application — Optimal Paiement</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Nunito:wght@300;400&display=swap" rel="stylesheet">
+  <!--
+  EMAILJS SETUP
+  1. Sign up free at https://www.emailjs.com/
+  2. Create an Email Service (Gmail, Outlook, etc.)
+  3. Create 2 Email Templates using the variable names below
+  4. Replace the 4 constants in the <script> at the bottom
+
+  TEMPLATE 1 — User confirmation (sent to the client)
+  Variables: {{to_email}}, {{company_name}}, {{creation_date}}
+
+  TEMPLATE 2 — Admin notification (sent to info@optimalpaiement.com)
+  Variables: {{company_name}}, {{legal_type}}, {{creation_date}},
+    {{phone}}, {{trade_name}}, {{website}}, {{user_email}},
+    {{address}}, {{city}}, {{province}}, {{postal_code}}, {{neq}},
+    {{sector}}, {{description}}, {{monthly_volume}},
+    {{avg_transaction}}, {{high_ticket}}, {{owner_count}},
+    {{bank_institution}}, {{bank_transit}}, {{bank_account}},
+    {{additional_info}}
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <style>
+    :root {
+      --gold:       #C9A96E;
+      --gold-light: #D4B87E;
+      --bg:         #141210;
+      --surface:    #1C1915;
+      --surface2:   #232019;
+      --border:     rgba(201,169,110,0.16);
+      --border-hi:  rgba(201,169,110,0.42);
+      --text:       #EDE8DE;
+      --muted:      #7E7464;
+      --white:      #FFFFFF;
+      --error:      #C96060;
+      --r:          6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Logo */
+    .logo-wrap { text-align: center; padding: 2.8rem 1rem 1.4rem; }
+    .logo-main {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 300;
+      font-size: 3rem;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+      line-height: 1;
+      display: block;
+    }
+    .logo-sub {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.58rem;
+      font-weight: 400;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: block;
+      margin-top: 0.3rem;
+    }
+
+    /* Hero */
+    .hero { text-align: center; padding: 0.8rem 1.5rem 0; }
+    .hero-title {
+      font-family: 'Cormorant', serif;
+      font-size: 2.2rem;
+      font-weight: 400;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 0.55rem;
+    }
+    .hero-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 300;
+      max-width: 400px;
+      margin: 0 auto 2.2rem;
+      line-height: 1.75;
+    }
+
+    /* Step nav */
+    .steps-nav {
+      display: flex;
+      justify-content: center;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      padding: 0 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1rem;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+    .step-item:hover { color: var(--text); }
+    .step-item.active { color: var(--gold); border-bottom-color: var(--gold); }
+    .step-num {
+      width: 19px; height: 19px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.58rem; font-weight: 600;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+    .step-item.active .step-num { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+
+    /* Container */
+    .container { max-width: 700px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    /* Card */
+    .form-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2.4rem 2.4rem 2rem;
+      display: none;
+      animation: fadeUp 0.28s ease;
+    }
+    .form-section.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .sec-kicker {
+      font-size: 0.6rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+    .sec-title {
+      font-family: 'Cormorant', serif;
+      font-size: 1.85rem;
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 0.3rem;
+      line-height: 1.2;
+    }
+    .sec-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    /* Grids */
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+    /* Field */
+    .field { margin-bottom: 1.05rem; }
+
+    label.lbl {
+      display: block;
+      font-size: 0.67rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.32rem;
+    }
+    label.lbl .req { color: var(--gold); margin-left: 1px; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.62rem 0.82rem;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 400;
+      line-height: 1.4;
+      transition: border-color 0.18s;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input::placeholder { color: var(--muted); opacity: 0.5; }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+    input.err, select.err { border-color: var(--error) !important; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.45); cursor: pointer; }
+
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237E7464'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2rem;
+    }
+    select option { background: #1C1915; color: #EDE8DE; }
+    textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
+
+    .hint { font-size: 0.68rem; color: var(--muted); margin-top: 0.28rem; line-height: 1.6; }
+    .hint.err-hint { color: var(--error); }
+
+    /* Notice box */
+    .notice {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      padding: 0.95rem 1.15rem;
+      background: rgba(201,169,110,0.04);
+      border: 1px solid rgba(201,169,110,0.12);
+      border-radius: var(--r);
+      margin-bottom: 1.3rem;
+      font-size: 0.79rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .notice-icon {
+      width: 18px; height: 18px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(201,169,110,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700;
+      color: var(--gold);
+      margin-top: 0.1rem;
+    }
+    .notice strong { color: var(--text); font-weight: 500; }
+    .notice em     { color: var(--text); font-style: italic; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.6rem 0; }
+
+    /* Sub-kicker */
+    .sub-kicker {
+      font-size: 0.6rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    /* Owner count buttons */
+    .owner-btns {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 0.6rem;
+      margin-top: 0.4rem;
+    }
+    .obtn {
+      padding: 0.6rem 0.4rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface2);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.16s;
+      text-align: center;
+    }
+    .obtn:hover { border-color: var(--border-hi); color: var(--text); }
+    .obtn.sel   { border-color: var(--gold); background: rgba(201,169,110,0.07); color: var(--gold); }
+
+    /* Owner card */
+    .owner-block {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.3rem 1.4rem;
+      margin-top: 0.8rem;
+      background: var(--surface2);
+    }
+    .owner-block-hd {
+      font-size: 0.63rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 0.85rem;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--r);
+      padding: 1.35rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone:hover  { border-color: var(--border-hi); background: rgba(201,169,110,0.025); }
+    .upload-zone.filled { border-color: var(--gold); border-style: solid; background: rgba(201,169,110,0.04); }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+      border: none; padding: 0; background: none;
+    }
+    .uz-icon {
+      width: 30px; height: 30px;
+      border: 1px solid var(--border-hi);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 0.5rem;
+      font-size: 1rem;
+      color: var(--gold);
+      font-weight: 300;
+    }
+    .uz-text { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+    .uz-text strong { color: var(--text); font-weight: 500; }
+    .uz-text small  { display: block; font-size: 0.67rem; margin-top: 0.18rem; opacity: 0.65; }
+    .uz-done { display: none; font-size: 0.78rem; color: var(--gold); font-weight: 500; }
+    .upload-zone.filled .uz-icon,
+    .upload-zone.filled .uz-text { display: none; }
+    .upload-zone.filled .uz-done { display: block; }
+
+    /* Checkbox */
+    .cb-row { display: flex; gap: 0.7rem; align-items: flex-start; }
+    .cb-row input[type="checkbox"] {
+      width: 16px; height: 16px;
+      flex-shrink: 0; margin-top: 3px;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+    .cb-row label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Conditional sections */
+    .postal-fields { display: none; }
+    .neq-wrap      { display: none; }
+
+    /* Button row */
+    .btn-row {
+      display: flex;
+      align-items: center;
+      margin-top: 2rem;
+      padding-top: 1.4rem;
+      border-top: 1px solid var(--border);
+      gap: 0.75rem;
+    }
+    .btn {
+      padding: 0.65rem 1.65rem;
+      border-radius: var(--r);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: none;
+      transition: all 0.16s;
+      white-space: nowrap;
+    }
+    .btn-back {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-back:hover { border-color: var(--muted); color: var(--text); }
+    .btn-next, .btn-submit { background: var(--gold); color: var(--bg); margin-left: auto; }
+    .btn-next:hover, .btn-submit:hover { background: var(--gold-light); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Success */
+    .success-screen { display: none; text-align: center; padding: 3.5rem 2rem 4.5rem; }
+    .success-screen.active { display: block; animation: fadeUp 0.35s ease; }
+    .success-ring {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,169,110,0.45);
+      background: rgba(201,169,110,0.08);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold);
+      font-size: 1.4rem;
+      margin: 0 auto 1.8rem;
+    }
+    .success-title {
+      font-family: 'Cormorant', serif;
+      font-size: 2.5rem;
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 1.1rem;
+    }
+    .success-body { color: var(--text); font-size: 0.9rem; line-height: 2; max-width: 420px; margin: 0 auto; opacity: 0.85; }
+    .success-body strong { color: var(--white); font-weight: 500; opacity: 1; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .form-section { padding: 1.6rem 1.3rem 1.4rem; }
+      .row-2, .row-3 { grid-template-columns: 1fr; }
+      .hero-title { font-size: 1.75rem; }
+      .sec-title  { font-size: 1.6rem; }
+      .steps-nav  { padding: 0 0.25rem; }
+      .step-item  { padding: 0.6rem 0.55rem; font-size: 0; gap: 0; }
+      .step-num   { font-size: 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="logo-wrap">
+  <span class="logo-main">Optimal</span>
+  <span class="logo-sub">paiement</span>
+</div>
+
+<div class="hero">
+  <h1 class="hero-title">Let's set up your account</h1>
+  <p class="hero-sub">A few minutes of your time — and you'll be ready to process payments seamlessly.</p>
+</div>
+
+<nav class="steps-nav" id="stepsNav">
+  <div class="step-item active" data-s="1" onclick="go(1)"><span class="step-num">1</span>&nbsp;Business</div>
+  <div class="step-item"        data-s="2" onclick="go(2)"><span class="step-num">2</span>&nbsp;Activity</div>
+  <div class="step-item"        data-s="3" onclick="go(3)"><span class="step-num">3</span>&nbsp;Owner</div>
+  <div class="step-item"        data-s="4" onclick="go(4)"><span class="step-num">4</span>&nbsp;Banking</div>
+</nav>
+
+<div class="container">
+
+  <!-- STEP 1 -->
+  <div class="form-section active" id="step1">
+    <div class="sec-kicker">Step 01 of 04</div>
+    <h2 class="sec-title">Business Information</h2>
+    <p class="sec-desc">Tell us about your company structure and contact details.</p>
+
+    <div class="row-2">
+      <div class="field">
+        <label class="lbl" for="legalType">Business Structure Type <span class="req">*</span></label>
+        <select id="legalType">
+          <option value="">Select your business structure…</option>
+          <option>Business individuelle (travailleur autonome)</option>
+          <option>Corporation (Inc. / Corp.)</option>
+          <option>Limited Liability Company (LLC)</option>
+          <option>General Partnership</option>
+          <option>Limited Partnership</option>
+          <option>Co-operative</option>
+          <option>Government / Public Body</option>
+          <option>Non-Profit Organization</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="lbl" for="creationDate">Business Start Date <span class="req">*</span></label>
+        <input type="date" id="creationDate">
+        <p class="hint" id="dateHint"></p>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label class="lbl" for="legalName">Legal Business Name <span class="req">*</span></label>
+        <input type="text" id="legalName" placeholder="Legal name of the business">
+      </div>
+      <div class="field">
+        <label class="lbl" for="phone">Business Phone <span class="req">*</span></label>
+        <input type="tel" id="phone" placeholder="(514) 000-0000">
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label class="lbl" for="tradeName">Trade Name (DBA)</label>
+        <input type="text" id="tradeName" placeholder="Operating under the name of…">
+      </div>
+      <div class="field">
+        <label class="lbl" for="website">Website</label>
+        <input type="url" id="website" placeholder="https://yourbusiness.com">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="email">Email <span class="req">*</span></label>
+      <input type="email" id="email" placeholder="you@yourbusiness.com">
+      <p class="hint">You will receive a confirmation email upon submission.</p>
+    </div>
+
+    <hr class="divider">
+    <div class="sub-kicker">Physical Business Address</div>
+
+    <div class="field">
+      <label class="lbl" for="address">Street Address <span class="req">*</span></label>
+      <input type="text" id="address" placeholder="Street number and name">
+      <p class="hint">No P.O. boxes — physical address required.</p>
+    </div>
+
+    <div class="row-3">
+      <div class="field">
+        <label class="lbl" for="suite">Unit / Suite</label>
+        <input type="text" id="suite" placeholder="Apt., unit…">
+      </div>
+      <div class="field">
+        <label class="lbl" for="city">City <span class="req">*</span></label>
+        <input type="text" id="city">
+      </div>
+      <div class="field">
+        <label class="lbl" for="postalCode">Postal Code <span class="req">*</span></label>
+        <input type="text" id="postalCode" placeholder="H0H 0H0">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="province">Province <span class="req">*</span></label>
+      <select id="province" onchange="onProvinceChange()">
+        <option value="">Select</option>
+        <option>Alberta</option>
+        <option>British Columbia</option>
+        <option>Manitoba</option>
+        <option>New Brunswick</option>
+        <option>Newfoundland and Labrador</option>
+        <option>Nova Scotia</option>
+        <option>Northwest Territories</option>
+        <option>Nunavut</option>
+        <option>Ontario</option>
+        <option>Prince Edward Island</option>
+        <option value="Québec">Québec</option>
+        <option>Saskatchewan</option>
+        <option>Yukon</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="cb-row">
+        <input type="checkbox" id="diffPostal" onchange="togglePostal(this)">
+        <label for="diffPostal">My mailing address is different (P.O. box or other)</label>
+      </div>
+    </div>
+
+    <div class="postal-fields" id="postalFields">
+      <hr class="divider">
+      <div class="sub-kicker">Street Address postale</div>
+      <div class="field">
+        <label class="lbl" for="postalAddress">Street Address postale <span class="req">*</span></label>
+        <input type="text" id="postalAddress" placeholder="P.O. box or mailing address">
+      </div>
+      <div class="row-3">
+        <div class="field">
+          <label class="lbl" for="postalCity">City <span class="req">*</span></label>
+          <input type="text" id="postalCity">
+        </div>
+        <div class="field">
+          <label class="lbl" for="postalProvince">Province <span class="req">*</span></label>
+          <select id="postalProvince">
+            <option value="">Select</option>
+            <option>Alberta</option><option>British Columbia</option>
+            <option>Manitoba</option><option>New Brunswick</option>
+            <option>Nova Scotia</option><option>Ontario</option>
+            <option>Québec</option><option>Saskatchewan</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lbl" for="postalZip">Postal Code <span class="req">*</span></label>
+          <input type="text" id="postalZip" placeholder="H0H 0H0">
+        </div>
+      </div>
+    </div>
+
+    <!-- BN — shown ONLY when Quebec is selected -->
+    <div class="neq-wrap" id="neqWrap">
+      <hr class="divider">
+      <div class="notice">
+        <span class="notice-icon">i</span>
+        <div>Since your business is registered in Quebec, you must provide your <strong>Quebec Enterprise Number (NEQ)</strong>, issued by the Registraire des entreprises du Québec (REQ).</div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="neq">Quebec Enterprise Number (NEQ) <span class="req">*</span></label>
+        <input type="text" id="neq" placeholder="0000000000" maxlength="10" inputmode="numeric">
+        <p class="hint">10-digit number found on your provincial registration certificate.</p>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-next" onclick="go(2)">Continue →</button>
+    </div>
+  </div>
+
+
+  <!-- STEP 2 -->
+  <div class="form-section" id="step2">
+    <div class="sec-kicker">Step 02 of 04</div>
+    <h2 class="sec-title">Activity commerciale</h2>
+    <p class="sec-desc">Help us understand your industry and payment processing needs.</p>
+
+    <div class="field">
+      <label class="lbl" for="sector">Industry <span class="req">*</span></label>
+      <select id="sector">
+        <option value="">Select your industry</option>
+        <option>Food & Beverage</option>
+        <option>Retail</option>
+        <option>Professional Services</option>
+        <option>Health & Wellness</option>
+        <option>Hospitality & Travel</option>
+        <option>Construction & Renovation</option>
+        <option>Technology & IT</option>
+        <option>Transportation & Logistics</option>
+        <option>Education & Training</option>
+        <option>Financial Services</option>
+        <option>Entertainment & Recreation</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="description">Business Description <span class="req">*</span></label>
+      <textarea id="description" placeholder="Briefly describe your products or services…"></textarea>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label class="lbl" for="monthlyVolume">Avg. Monthly Volume <span class="req">*</span></label>
+        <input type="text" id="monthlyVolume" placeholder="e.g. $25,000">
+        <p class="hint">Estimated monthly card processing volume.</p>
+      </div>
+      <div class="field">
+        <label class="lbl" for="avgTransaction">Avg. Transaction Amount <span class="req">*</span></label>
+        <input type="text" id="avgTransaction" placeholder="e.g. $85">
+        <p class="hint">Typical single transaction value.</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="highTicket">Highest Possible Transaction <span class="req">*</span></label>
+      <input type="text" id="highTicket" placeholder="e.g. $2,500">
+      <p class="hint">Maximum amount a single customer could pay in one transaction.</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="go(1)">← Back</button>
+      <button class="btn btn-next" onclick="go(3)">Continue →</button>
+    </div>
+  </div>
+
+
+  <!-- STEP 3 -->
+  <div class="form-section" id="step3">
+    <div class="sec-kicker">Step 03 of 04</div>
+    <h2 class="sec-title">Owner Information</h2>
+    <p class="sec-desc">Required for all individuals holding 25% or more ownership.</p>
+
+    <div class="notice">
+      <span class="notice-icon">i</span>
+      <div>Your personal information is used solely for identity verification (KYC) purposes, in compliance with the <em>Proceeds of Crime (Money Laundering) and Terrorist Financing Act</em> (PCMLTFA).</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Number of Owners <span class="req">*</span></label>
+      <p class="hint" style="margin-bottom:0.6rem">Declare all individuals holding 25% or more ownership.</p>
+      <div class="owner-btns">
+        <button type="button" class="obtn" onclick="setOwners(1,this)">1</button>
+        <button type="button" class="obtn" onclick="setOwners(2,this)">2</button>
+        <button type="button" class="obtn" onclick="setOwners(3,this)">3</button>
+        <button type="button" class="obtn" onclick="setOwners(4,this)">4+</button>
+      </div>
+    </div>
+
+    <div id="ownerUploads"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="go(2)">← Back</button>
+      <button class="btn btn-next" onclick="go(4)">Continue →</button>
+    </div>
+  </div>
+
+
+  <!-- STEP 4 -->
+  <div class="form-section" id="step4">
+    <div class="sec-kicker">Step 04 of 04</div>
+    <h2 class="sec-title">Banking Details</h2>
+    <p class="sec-desc">Where should we deposit your funds? Typically settled within 1–2 business days.</p>
+
+    <div class="notice">
+      <span class="notice-icon">!</span>
+      <div><strong>Business chequing account only.</strong> Savings accounts and e-transfer apps (Interac e-Transfer) are not accepted for merchant deposits.</div>
+    </div>
+
+    <div class="notice">
+      <span class="notice-icon">i</span>
+      <div>For <strong>Desjardins</strong> or credit union members, the transit number is also called the <strong>folio number</strong>. This information appears on your bank identification record (BIR) or a voided cheque.</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="bankInst">Bank Institution Number <span class="req">*</span></label>
+      <input type="text" id="bankInst" placeholder="e.g. 003" maxlength="3" inputmode="numeric">
+      <p class="hint">3 digits &mdash; 001 BMO &nbsp;·&nbsp; 002 Scotiabank &nbsp;·&nbsp; 003 RBC &nbsp;·&nbsp; 004 TD &nbsp;·&nbsp; 006 NBC &nbsp;·&nbsp; 010 CIBC &nbsp;·&nbsp; 016 HSBC &nbsp;·&nbsp; 815 Desjardins</p>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label class="lbl" for="bankTransit">Transit / Folio Number <span class="req">*</span></label>
+        <input type="text" id="bankTransit" placeholder="5 digits" maxlength="5" inputmode="numeric">
+        <p class="hint">5 digits identifiant votre succursale ou caisse.</p>
+      </div>
+      <div class="field">
+        <label class="lbl" for="bankAccount">Account Number <span class="req">*</span></label>
+        <input type="text" id="bankAccount" placeholder="7–12 digits" inputmode="numeric">
+        <p class="hint">Found on your BIR or voided cheque.</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Voided Cheque <span class="req">*</span></label>
+      <div class="upload-zone" id="voidZone">
+        <input type="file" accept=".jpg,.jpeg,.png,.pdf" onchange="markFilled('voidZone','voidDone',this)">
+        <div class="uz-icon">+</div>
+        <div class="uz-text">
+          <strong>Click to upload</strong> or drag and drop
+          <small>JPG, PNG or PDF &nbsp;·&nbsp; Max. 10 MB</small>
+        </div>
+        <div class="uz-done" id="voidDone"></div>
+      </div>
+      <p class="hint" style="margin-top:0.35rem">Write "VOID" across a blank cheque. Alternatively, upload your bank identification record (BIR) or a specimen cheque from your institution.</p>
+    </div>
+
+    <div class="field" style="margin-top:0.4rem">
+      <label class="lbl" for="addInfo">Additional Information</label>
+      <textarea id="addInfo" placeholder="Optional — share any additional details that may help process your application."></textarea>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field">
+      <div class="cb-row">
+        <input type="checkbox" id="confirm">
+        <label for="confirm">I confirm that all information provided is accurate and complete. I authorize verification of this information for merchant account processing purposes with Optimal Paiement.</label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="go(3)">← Back</button>
+      <button class="btn btn-submit" id="submitBtn" onclick="submitForm()">Submit Application</button>
+    </div>
+  </div>
+
+
+  <!-- SUCCESS -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-ring">&#10003;</div>
+    <h2 class="success-title">Application Received!</h2>
+    <p class="success-body">
+      Thank you for your application.<br>
+      Our team at Optimal Paiement will <strong>process your file within 24 business hours</strong>.<br><br>
+      A confirmation email has been sent to the address you provided.<br>
+      A copy has also been forwarded to our team at Optimal Paiement.
+    </p>
+  </div>
+
+</div>
+
+<script>
+/* ── EmailJS credentials ── replace before deploying ──── */
+const EJ_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+const EJ_SERVICE_ID = 'YOUR_SERVICE_ID';
+const EJ_TPL_USER   = 'YOUR_USER_TEMPLATE_ID';
+const EJ_TPL_ADMIN  = 'YOUR_ADMIN_TEMPLATE_ID';
+const ADMIN_EMAIL   = 'info@optimalpaiement.com';
+/* ───────────────────────────────────────────────────────── */
+
+if (EJ_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') emailjs.init(EJ_PUBLIC_KEY);
+
+/* ── Date field: cap at today, minimum 1900 ─────────────── */
+(function () {
+  const field   = document.getElementById('creationDate');
+  const today   = new Date();
+  const todayYr = today.getFullYear();
+  const pad     = n => String(n).padStart(2, '0');
+  field.max = `${todayYr}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  field.min = '1900-01-01';
+
+  field.addEventListener('change', function () {
+    const hint = document.getElementById('dateHint');
+    hint.className = 'hint';
+    if (!this.value) { hint.textContent = ''; this.classList.remove('err'); return; }
+    const yr = parseInt(this.value.split('-')[0], 10);
+    if (yr > todayYr) {
+      hint.textContent = 'The date cannot be in the future.';
+      hint.classList.add('err-hint');
+      this.classList.add('err');
+    } else if (yr < 1900 || yr > 2100) {
+      hint.textContent = 'Please enter a valid year (e.g. 2015).';
+      hint.classList.add('err-hint');
+      this.classList.add('err');
+    } else {
+      hint.textContent = '';
+      this.classList.remove('err');
+    }
+  });
+})();
+
+/* ── Phone auto-format (514) 555-1212 ───────────────────── */
+document.getElementById('phone').addEventListener('input', function () {
+  let v = this.value.replace(/\D/g, '').substring(0, 10);
+  if (v.length >= 7)      v = '(' + v.substring(0,3) + ') ' + v.substring(3,6) + '-' + v.substring(6);
+  else if (v.length >= 4) v = '(' + v.substring(0,3) + ') ' + v.substring(3);
+  else if (v.length > 0)  v = '(' + v;
+  this.value = v;
+});
+
+/* ── Province → NEQ (Québec only) ───────────────────────── */
+function onProvinceChange() {
+  const val  = document.getElementById('province').value;
+  const wrap = document.getElementById('neqWrap');
+  if (val === 'Québec') {
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+    document.getElementById('neq').value = '';
+  }
+}
+
+/* ── Postal address toggle ──────────────────────────────── */
+function togglePostal(cb) {
+  document.getElementById('postalFields').style.display = cb.checked ? 'block' : 'none';
+}
+
+/* ── Step navigation ────────────────────────────────────── */
+let currentStep = 1;
+
+function go(step) {
+  document.getElementById(`step${currentStep}`).classList.remove('active');
+  currentStep = step;
+  document.getElementById(`step${step}`).classList.add('active');
+  document.querySelectorAll('.step-item').forEach(el => {
+    const s = +el.dataset.s;
+    el.classList.remove('active', 'done');
+    if (s === step)    el.classList.add('active');
+    else if (s < step) el.classList.add('done');
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Owner count + dynamic upload blocks ────────────────── */
+let ownerCount = 0;
+
+function setOwners(n, btn) {
+  ownerCount = n;
+  document.querySelectorAll('.obtn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  renderOwnerUploads(n);
+}
+
+function renderOwnerUploads(n) {
+  const wrap  = document.getElementById('ownerUploads');
+  wrap.innerHTML = '';
+  const total = Math.min(n, 4);
+  const provinces = ['Alberta','British Columbia','Manitoba','New Brunswick',
+    'Nova Scotia','Ontario','Québec','Saskatchewan','Newfoundland and Labrador',
+    'Prince Edward Island','Other'];
+  const provOptions = provinces.map(p => `<option>${p}</option>`).join('');
+
+  for (let i = 1; i <= total; i++) {
+    const title = i === 1 ? 'Owner principal' : `Owner ${i}`;
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="owner-block">
+        <div class="owner-block-hd">${title}</div>
+
+        <div class="row-2">
+          <div class="field">
+            <label class="lbl" for="ownerName${i}">Full Legal Name <span class="req">*</span></label>
+            <input type="text" id="ownerName${i}" placeholder="First and last name">
+          </div>
+          <div class="field">
+            <label class="lbl" for="ownerDob${i}">Date of Birth <span class="req">*</span></label>
+            <input type="date" id="ownerDob${i}" max="${new Date().toISOString().split('T')[0]}" min="1900-01-01">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="lbl" for="ownerEmail${i}">Email personnel <span class="req">*</span></label>
+          <input type="email" id="ownerEmail${i}" placeholder="firstname@email.com">
+        </div>
+
+        <div class="field">
+          <label class="lbl" for="ownerAddr${i}">Street Address personnelle <span class="req">*</span></label>
+          <input type="text" id="ownerAddr${i}" placeholder="Street number and name">
+        </div>
+
+        <div class="row-3">
+          <div class="field">
+            <label class="lbl" for="ownerCity${i}">City <span class="req">*</span></label>
+            <input type="text" id="ownerCity${i}">
+          </div>
+          <div class="field">
+            <label class="lbl" for="ownerProv${i}">Province <span class="req">*</span></label>
+            <select id="ownerProv${i}"><option value="">Select</option>${provOptions}</select>
+          </div>
+          <div class="field">
+            <label class="lbl" for="ownerZip${i}">Postal Code <span class="req">*</span></label>
+            <input type="text" id="ownerZip${i}" placeholder="H0H 0H0">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:0.5rem">
+          <label class="lbl">Pièce d'identité <span class="req">*</span></label>
+          <div class="upload-zone" id="ownerZone${i}">
+            <input type="file" accept=".jpg,.jpeg,.png,.pdf"
+              onchange="markFilled('ownerZone${i}','ownerDone${i}',this)">
+            <div class="uz-icon">+</div>
+            <div class="uz-text">
+              <strong>Click to upload</strong> or drag and drop
+              <small>JPG, PNG or PDF &nbsp;·&nbsp; Max. 10 MB &nbsp;·&nbsp; Driver's licence (front & back) or government-issued photo ID</small>
+            </div>
+            <div class="uz-done" id="ownerDone${i}"></div>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+}
+
+/* ── Upload helper ──────────────────────────────────────── */
+function markFilled(zoneId, doneId, input) {
+  if (!input.files || !input.files[0]) return;
+  document.getElementById(zoneId).classList.add('filled');
+  document.getElementById(doneId).textContent = '✓  ' + input.files[0].name;
+}
+
+/* ── Form submit ────────────────────────────────────────── */
+async function submitForm() {
+  if (!document.getElementById('confirm').checked) {
+    alert('Veuillez cocher la case de confirmation avant de soumettre.');
+    return;
+  }
+
+  // Date sanity guard
+  const dateVal = document.getElementById('creationDate').value;
+  if (dateVal) {
+    const yr      = parseInt(dateVal.split('-')[0], 10);
+    const thisYr  = new Date().getFullYear();
+    if (yr > thisYr || yr < 1900 || yr > 2100) {
+      alert('Please correct the business start date before submitting.');
+      go(1);
+      return;
+    }
+  }
+
+  const btn        = document.getElementById('submitBtn');
+  btn.disabled     = true;
+  btn.textContent  = 'Submitting…';
+
+  const province   = document.getElementById('province').value;
+  const isQuebec   = province === 'Québec';
+  const userEmail  = document.getElementById('email').value.trim();
+  const companyName= document.getElementById('legalName').value.trim();
+
+  const params = {
+    company_name:     companyName,
+    legal_type:       document.getElementById('legalType').value,
+    creation_date:    dateVal,
+    phone:            document.getElementById('phone').value,
+    trade_name:       document.getElementById('tradeName').value  || '—',
+    website:          document.getElementById('website').value    || '—',
+    user_email:       userEmail,
+    address:          document.getElementById('address').value,
+    city:             document.getElementById('city').value,
+    province:         province,
+    postal_code:      document.getElementById('postalCode').value,
+    neq:              isQuebec ? (document.getElementById('neq').value || '—') : 'N/A',
+    sector:           document.getElementById('sector').value,
+    description:      document.getElementById('description').value,
+    monthly_volume:   document.getElementById('monthlyVolume').value,
+    avg_transaction:  document.getElementById('avgTransaction').value,
+    high_ticket:      document.getElementById('highTicket').value,
+    owner_count:      ownerCount || 1,
+    bank_institution: document.getElementById('bankInst').value,
+    bank_transit:     document.getElementById('bankTransit').value,
+    bank_account:     document.getElementById('bankAccount').value,
+    additional_info:  document.getElementById('addInfo').value    || '—',
+  };
+
+  try {
+    if (EJ_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+      await emailjs.send(EJ_SERVICE_ID, EJ_TPL_USER,  { ...params, to_email: userEmail });
+      await emailjs.send(EJ_SERVICE_ID, EJ_TPL_ADMIN, { ...params, to_email: ADMIN_EMAIL });
+    }
+
+    document.getElementById(`step${currentStep}`).classList.remove('active');
+    document.getElementById('stepsNav').style.display      = 'none';
+    document.querySelector('.hero-title').style.display    = 'none';
+    document.querySelector('.hero-sub').style.display      = 'none';
+    document.getElementById('successScreen').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    console.error('EmailJS error:', err);
+    btn.disabled    = false;
+    btn.textContent = 'Submit Application';
+    alert('An error occurred. Please try again or contact us at info@optimalpaiement.com.');
+  }
+}
+</script>
+</body>
+</html>
