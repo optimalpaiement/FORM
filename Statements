@@ -1,3 +1,14 @@
+{
+  "name": "optimal-paiement-upload",
+  "version": "1.0.0",
+  "description": "Netlify function to upload prospect statements to Google Drive",
+  "private": true,
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "googleapis": "^140.0.0"
+  }
+}
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -67,14 +78,14 @@
       margin-bottom: 0.75rem;
     }
     .hero-sub {
-      color: var(--muted);
+      color: var(--white);
       font-size: 0.88rem;
       font-weight: 300;
-      max-width: 460px;
+      max-width: 480px;
       margin: 0 auto;
-      line-height: 1.85;
+      line-height: 1.9;
     }
-    .hero-sub strong { color: var(--text); font-weight: 400; }
+    .hero-sub strong { font-weight: 500; }
 
     /* Container */
     .container { max-width: 620px; margin: 0 auto; padding: 0 1.5rem 5rem; }
@@ -152,6 +163,30 @@
     .hint { font-size: 0.68rem; color: var(--muted); margin-top: 0.28rem; line-height: 1.6; }
     .err-hint { color: var(--error) !important; }
 
+    /* Progress bar */
+    .upload-progress { display: none; margin-top: 0.6rem; }
+    .upload-progress.show { display: block; }
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .progress-label {
+      font-size: 0.67rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      text-align: center;
+    }
+
     /* Notice */
     .notice {
       display: flex;
@@ -204,13 +239,6 @@
     }
     .upload-zone:hover  { border-color: var(--border-hi); background: rgba(201,169,110,0.025); }
     .upload-zone.filled { border-color: var(--gold); border-style: solid; background: rgba(201,169,110,0.04); }
-
-    .upload-zone input[type="file"] {
-      position: absolute; inset: 0;
-      opacity: 0; cursor: pointer;
-      width: 100%; height: 100%;
-      border: none; padding: 0; background: none;
-    }
     .uz-icon {
       width: 36px; height: 36px;
       border: 1px solid var(--border-hi);
@@ -258,7 +286,7 @@
     .file-item-remove:hover { color: var(--error); }
 
     .add-more {
-      display: inline-flex;
+      display: none;
       align-items: center;
       gap: 0.4rem;
       margin-top: 0.5rem;
@@ -273,7 +301,7 @@
       transition: color 0.15s;
     }
     .add-more:hover { color: var(--gold-light); }
-    .add-more input[type="file"] { display: none; }
+    .add-more.show { display: inline-flex; }
 
     /* Checkbox */
     .cb-row { display: flex; gap: 0.7rem; align-items: flex-start; }
@@ -291,11 +319,7 @@
     }
 
     /* Button */
-    .btn-row {
-      margin-top: 2rem;
-      padding-top: 1.4rem;
-      border-top: 1px solid var(--border);
-    }
+    .btn-row { margin-top: 2rem; padding-top: 1.4rem; border-top: 1px solid var(--border); }
     .btn-submit {
       width: 100%;
       padding: 0.8rem 1.65rem;
@@ -314,7 +338,7 @@
     .btn-submit:hover    { background: var(--gold-light); }
     .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    /* Error summary */
+    /* Error banner */
     .err-banner {
       display: none;
       padding: 0.8rem 1rem;
@@ -329,11 +353,7 @@
     .err-banner.show { display: block; }
 
     /* Success */
-    .success-screen {
-      display: none;
-      text-align: center;
-      padding: 3.5rem 2rem 4.5rem;
-    }
+    .success-screen { display: none; text-align: center; padding: 3.5rem 2rem 4.5rem; }
     .success-screen.active { display: block; animation: fadeUp 0.35s ease; }
     .success-ring {
       width: 68px; height: 68px;
@@ -363,34 +383,30 @@
     }
     .success-body strong { color: var(--white); font-weight: 500; opacity: 1; }
 
-    /* Responsive */
     @media (max-width: 600px) {
-      .form-card { padding: 1.6rem 1.3rem 1.4rem; }
-      .row-2     { grid-template-columns: 1fr; }
+      .form-card  { padding: 1.6rem 1.3rem 1.4rem; }
+      .row-2      { grid-template-columns: 1fr; }
       .hero-title { font-size: 1.75rem; }
     }
   </style>
 </head>
 <body>
 
-<!-- Logo -->
 <div class="logo-wrap">
   <span class="logo-main">Optimal</span>
   <span class="logo-sub">paiement</span>
 </div>
 
-<!-- Hero -->
 <div class="hero">
-  <h1 class="hero-title">Soumettez vos relevés</h1>
+  <h1 class="hero-title">Merci de nous soumettre vos relevés</h1>
   <p class="hero-sub">
-    Faites-nous parvenir vos relevés de façon sécurisée.<br>
+    Faites-nous parvenir vos relevés ici de façon sécurisée.<br>
     <strong>Nous les analyserons et vous préparerons une offre adaptée à votre réalité.</strong>
   </p>
 </div>
 
 <div class="container">
 
-  <!-- FORM CARD -->
   <div class="form-card" id="formCard">
 
     <div class="sec-kicker">Analyse confidentielle</div>
@@ -402,83 +418,70 @@
       <div>Vos relevés sont traités de façon <strong>strictement confidentielle</strong> et utilisés uniquement dans le cadre de notre analyse tarifaire.</div>
     </div>
 
-    <!--
-      NETLIFY FORMS:
-      - The `netlify` attribute on the <form> tag registers it automatically with Netlify.
-      - The hidden input `form-name` is required for AJAX submission to work.
-      - File uploads are stored in your Netlify dashboard under Forms → statement-upload.
-      - To receive email notifications: Netlify Dashboard → Forms → statement-upload → Form notifications → Add notification → Email.
-    -->
-    <form
-      name="statement-upload"
-      method="POST"
-      enctype="multipart/form-data"
-      data-netlify="true"
-      data-netlify-honeypot="bot-field"
-      id="uploadForm"
-      onsubmit="handleSubmit(event)"
-    >
-      <!-- Required hidden fields for Netlify Forms -->
-      <input type="hidden" name="form-name" value="statement-upload">
-      <!-- Honeypot anti-spam field (hidden from real users) -->
-      <p style="display:none"><label>Ne pas remplir : <input name="bot-field"></label></p>
+    <form id="uploadForm">
 
       <div class="row-2">
         <div class="field">
           <label class="lbl" for="firstName">Prénom <span class="req">*</span></label>
-          <input type="text" id="firstName" name="prenom" placeholder="Jean">
+          <input type="text" id="firstName" placeholder="Jean">
         </div>
         <div class="field">
           <label class="lbl" for="lastName">Nom <span class="req">*</span></label>
-          <input type="text" id="lastName" name="nom" placeholder="Tremblay">
+          <input type="text" id="lastName" placeholder="Tremblay">
         </div>
       </div>
 
       <div class="field">
         <label class="lbl" for="emailField">Courriel <span class="req">*</span></label>
-        <input type="email" id="emailField" name="courriel" placeholder="vous@votreentreprise.com">
+        <input type="email" id="emailField" placeholder="vous@votreentreprise.com">
         <p class="hint">Nous vous enverrons notre analyse à cette adresse.</p>
       </div>
 
       <div class="field">
         <label class="lbl" for="companyField">Nom de l'entreprise <span class="req">*</span></label>
-        <input type="text" id="companyField" name="entreprise" placeholder="Nom légal ou commercial">
+        <input type="text" id="companyField" placeholder="Nom légal ou commercial">
       </div>
 
       <hr class="divider">
 
-      <!-- File upload -->
       <div class="field">
         <span class="upload-label">Relevé(s) de traitement <span class="req">*</span></span>
 
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('mainFile').click()">
-          <input type="file" id="mainFile" name="releve" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="addFiles(this.files)">
+        <div class="upload-zone" id="uploadZone"
+             onclick="document.getElementById('fileInput').click()"
+             ondragover="event.preventDefault(); this.style.borderColor='var(--border-hi)'"
+             ondragleave="this.style.borderColor=''"
+             ondrop="event.preventDefault(); addFiles(event.dataTransfer.files)">
+          <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" multiple style="display:none" onchange="addFiles(this.files)">
           <div class="uz-icon">+</div>
           <div class="uz-text">
             <strong>Cliquez pour téléverser</strong> ou glissez-déposez
-            <small>PDF, JPG ou PNG &nbsp;·&nbsp; Max. 10 Mo par fichier</small>
+            <small>PDF, JPG ou PNG &nbsp;·&nbsp; Plusieurs fichiers acceptés</small>
           </div>
           <div class="uz-done">✓ &nbsp;Fichier(s) sélectionné(s)</div>
         </div>
 
         <div class="file-list" id="fileList"></div>
 
-        <!-- Hidden inputs for additional files will be injected here -->
-        <div id="extraInputs"></div>
-
-        <button type="button" class="add-more" id="addMoreBtn" style="display:none" onclick="document.getElementById('extraFile').click()">
-          <input type="file" id="extraFile" name="releve_2" accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(this.files)" style="display:none">
+        <button type="button" class="add-more" id="addMoreBtn" onclick="document.getElementById('fileInput').click()">
           + Ajouter un autre relevé
         </button>
 
         <p class="hint" style="margin-top:0.5rem">Idéalement les 2–3 derniers relevés mensuels de votre processeur actuel.</p>
       </div>
 
+      <div class="upload-progress" id="uploadProgress">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <p class="progress-label" id="progressLabel">Envoi en cours…</p>
+      </div>
+
       <hr class="divider">
 
       <div class="field">
         <div class="cb-row">
-          <input type="checkbox" id="consent" name="consentement" value="oui">
+          <input type="checkbox" id="consent">
           <label for="consent">Je consens à ce qu'Optimal Paiement utilise ces informations dans le cadre d'une analyse tarifaire confidentielle.</label>
         </div>
       </div>
@@ -513,46 +516,37 @@
 
   function addFiles(fileList) {
     for (const file of fileList) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`"${file.name}" dépasse la limite de 10 Mo.`);
-        continue;
-      }
-      // avoid duplicates
       if (!selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
         selectedFiles.push(file);
       }
     }
     renderFileList();
-    syncNetlifyInputs();
   }
 
   function removeFile(index) {
     selectedFiles.splice(index, 1);
     renderFileList();
-    syncNetlifyInputs();
   }
 
   function formatSize(bytes) {
-    if (bytes < 1024)       return bytes + ' o';
-    if (bytes < 1024*1024)  return (bytes/1024).toFixed(0) + ' Ko';
-    return (bytes/(1024*1024)).toFixed(1) + ' Mo';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' Ko';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
   }
 
   function renderFileList() {
-    const list = document.getElementById('fileList');
-    const zone = document.getElementById('uploadZone');
+    const list       = document.getElementById('fileList');
+    const zone       = document.getElementById('uploadZone');
     const addMoreBtn = document.getElementById('addMoreBtn');
-
-    list.innerHTML = '';
+    list.innerHTML   = '';
 
     if (selectedFiles.length === 0) {
       zone.classList.remove('filled');
-      addMoreBtn.style.display = 'none';
+      addMoreBtn.classList.remove('show');
       return;
     }
 
     zone.classList.add('filled');
-    addMoreBtn.style.display = 'inline-flex';
+    addMoreBtn.classList.add('show');
 
     selectedFiles.forEach((file, i) => {
       const item = document.createElement('div');
@@ -567,38 +561,13 @@
     });
   }
 
-  /*
-    Netlify Forms with file uploads works best with a standard form POST.
-    We use native form submission (no AJAX) to ensure files are properly
-    transmitted. The success page is shown via a redirect or inline swap.
-    For simplicity and reliability with Netlify, we do a native POST and
-    Netlify redirects to /?success=true on submission.
-  */
-  function syncNetlifyInputs() {
-    // Netlify handles the primary file input (id="mainFile" name="releve")
-    // For the visual file list we just ensure the primary input has a file.
-    // Additional files beyond the first are named releve_2, releve_3, etc.
-    // Because we can't programmatically assign files to input[type=file],
-    // we keep the native file inputs and just manage visibility.
-  }
+  /* ── Form submit → Netlify Function ───────────────────── */
+  document.getElementById('uploadForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
 
-  /* ── Check for ?success=true on page load ─────────────── */
-  window.addEventListener('DOMContentLoaded', () => {
-    if (window.location.search.includes('success=true')) {
-      document.getElementById('formCard').style.display = 'none';
-      document.querySelector('.hero-title').textContent = 'Merci !';
-      document.querySelector('.hero-sub').style.display = 'none';
-      document.getElementById('successScreen').classList.add('active');
-    }
-  });
-
-  /* ── Form validation + submit ─────────────────────────── */
-  function handleSubmit(e) {
-    const errors = [];
-    const errBanner = document.getElementById('errBanner');
+    const errors     = [];
+    const errBanner  = document.getElementById('errBanner');
     errBanner.classList.remove('show');
-
-    // Clear previous errors
     document.querySelectorAll('input.err').forEach(el => el.classList.remove('err'));
 
     const firstName = document.getElementById('firstName');
@@ -606,40 +575,236 @@
     const email     = document.getElementById('emailField');
     const company   = document.getElementById('companyField');
     const consent   = document.getElementById('consent');
-    const mainFile  = document.getElementById('mainFile');
 
     if (!firstName.value.trim()) { firstName.classList.add('err'); errors.push('Prénom requis.'); }
     if (!lastName.value.trim())  { lastName.classList.add('err');  errors.push('Nom requis.'); }
-
-    const emailVal = email.value.trim();
-    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+    if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
       email.classList.add('err'); errors.push('Courriel invalide.');
     }
-
     if (!company.value.trim()) { company.classList.add('err'); errors.push("Nom de l'entreprise requis."); }
-
-    if (!mainFile.files || mainFile.files.length === 0) {
-      errors.push('Veuillez téléverser au moins un relevé.');
-    }
-
-    if (!consent.checked) {
-      errors.push('Veuillez cocher la case de consentement.');
-    }
+    if (selectedFiles.length === 0) errors.push('Veuillez téléverser au moins un relevé.');
+    if (!consent.checked) errors.push('Veuillez cocher la case de consentement.');
 
     if (errors.length > 0) {
-      e.preventDefault();
       errBanner.innerHTML = errors.join('<br>');
       errBanner.classList.add('show');
-      window.scrollTo({ top: errBanner.offsetTop - 20, behavior: 'smooth' });
       return;
     }
 
-    // Let the native form POST proceed — Netlify will handle it
     const btn = document.getElementById('submitBtn');
     btn.disabled    = true;
     btn.textContent = 'Envoi en cours…';
-  }
+
+    const progress      = document.getElementById('uploadProgress');
+    const progressFill  = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    progress.classList.add('show');
+
+    try {
+      // Upload each file via the Netlify Function
+      const uploadedLinks = [];
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file       = selectedFiles[i];
+        const formData   = new FormData();
+        formData.append('file',      file);
+        formData.append('firstName', firstName.value.trim());
+        formData.append('lastName',  lastName.value.trim());
+        formData.append('email',     email.value.trim());
+        formData.append('company',   company.value.trim());
+
+        progressLabel.textContent = `Envoi du fichier ${i + 1} sur ${selectedFiles.length} : ${file.name}`;
+        progressFill.style.width  = `${Math.round(((i) / selectedFiles.length) * 100)}%`;
+
+        const res  = await fetch('/.netlify/functions/upload-to-drive', {
+          method: 'POST',
+          body:   formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || `Erreur lors de l'envoi de ${file.name}`);
+        }
+
+        const data = await res.json();
+        if (data.fileLink) uploadedLinks.push(data.fileLink);
+      }
+
+      progressFill.style.width  = '100%';
+      progressLabel.textContent = 'Envoi terminé !';
+
+      // Show success screen
+      setTimeout(() => {
+        document.getElementById('formCard').style.display      = 'none';
+        document.querySelector('.hero-title').textContent      = 'Merci !';
+        document.querySelector('.hero-sub').style.display      = 'none';
+        document.getElementById('successScreen').classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 600);
+
+    } catch (err) {
+      console.error(err);
+      progress.classList.remove('show');
+      btn.disabled    = false;
+      btn.textContent = 'Soumettre mes relevés';
+      errBanner.innerHTML = `Une erreur est survenue : ${err.message}.<br>Veuillez réessayer ou nous contacter à <a href="mailto:info@optimalpaiement.com" style="color:var(--gold)">info@optimalpaiement.com</a>.`;
+      errBanner.classList.add('show');
+    }
+  });
 </script>
 
 </body>
 </html>
+
+# Optimal Paiement — Statement Upload Portal
+
+Page de soumission de relevés pour prospects.
+URL cible : `https://onboarding.optimalpaiement.com/soumettre-releves`
+
+Les fichiers soumis atterrissent automatiquement dans un dossier Google Drive partagé avec l'équipe.
+
+---
+
+## Structure du projet
+
+```
+/
+├── statement-upload.html          ← Page visible par les prospects
+├── netlify.toml                   ← Config Netlify (routing + functions)
+├── package.json                   ← Dépendances Node.js pour la fonction
+└── netlify/
+    └── functions/
+        └── upload-to-drive.js     ← Fonction serverless (reçoit le fichier, l'envoie à Drive)
+```
+
+---
+
+## Étape 1 — Google Cloud : créer le compte de service
+
+> Cette étape est faite une seule fois. Si quelqu'un de l'équipe l'a déjà complétée, passer à l'Étape 2.
+
+1. Aller sur [https://console.cloud.google.com/](https://console.cloud.google.com/)
+2. Créer un nouveau projet — le nommer `Optimal Paiement Forms`
+3. Dans la barre de recherche, taper **"Google Drive API"** → cliquer → **Activer**
+4. Aller dans **IAM & Admin → Comptes de service**
+5. Cliquer **Créer un compte de service**
+   - Nom : `netlify-uploader`
+   - Cliquer à travers les étapes suivantes (aucun rôle spécial requis)
+6. Une fois créé, cliquer sur le compte de service → onglet **Clés**
+7. Cliquer **Ajouter une clé → Créer une nouvelle clé → JSON**
+8. Un fichier `.json` se télécharge automatiquement — **le conserver précieusement, ne jamais le partager publiquement ni le mettre sur GitHub**
+
+Le fichier JSON ressemble à ceci :
+```json
+{
+  "type": "service_account",
+  "project_id": "...",
+  "client_email": "netlify-uploader@votreprojet.iam.gserviceaccount.com",
+  "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n",
+  ...
+}
+```
+
+---
+
+## Étape 2 — Google Drive : créer et partager le dossier
+
+1. Aller sur [https://drive.google.com](https://drive.google.com)
+2. Créer un dossier — ex. **`Relevés Prospects — Optimal Paiement`**
+3. Faire un clic droit sur le dossier → **Partager**
+4. Coller l'adresse `client_email` du fichier JSON (ex. `netlify-uploader@votreprojet.iam.gserviceaccount.com`)
+5. Donner l'accès **Éditeur**
+6. Cliquer sur le dossier pour l'ouvrir — l'URL ressemble à :
+   `https://drive.google.com/drive/folders/1ABCdef_GHIjkl_MNOPQR`
+7. Copier la dernière partie : `1ABCdef_GHIjkl_MNOPQR` — c'est votre **GOOGLE_DRIVE_FOLDER_ID**
+
+---
+
+## Étape 3 — Netlify : configurer les variables d'environnement
+
+1. Aller dans **Netlify Dashboard** → votre site → **Site configuration → Environment variables**
+2. Ajouter les 3 variables suivantes :
+
+| Variable                  | Valeur                                                                 |
+|---------------------------|------------------------------------------------------------------------|
+| `GOOGLE_CLIENT_EMAIL`     | La valeur `client_email` du fichier JSON                               |
+| `GOOGLE_PRIVATE_KEY`      | La valeur complète `private_key` du fichier JSON (avec les `\n`)       |
+| `GOOGLE_DRIVE_FOLDER_ID`  | L'ID du dossier Drive copié à l'Étape 2                                |
+
+> **Important pour `GOOGLE_PRIVATE_KEY`** : copier la clé en entier, incluant
+> `-----BEGIN RSA PRIVATE KEY-----` et `-----END RSA PRIVATE KEY-----`.
+> Netlify conserve les sauts de ligne automatiquement.
+
+---
+
+## Étape 4 — GitHub : déployer les fichiers
+
+1. Aller dans le repo GitHub qui alimente `onboarding.optimalpaiement.com`
+2. Ajouter tous les fichiers de ce dossier :
+   - `statement-upload.html` → à la racine
+   - `netlify.toml` → à la racine (fusionner avec l'existant si nécessaire)
+   - `package.json` → à la racine
+   - `netlify/functions/upload-to-drive.js` → créer les dossiers si nécessaire
+3. Committer et pousser — Netlify déploie automatiquement en ~30 secondes
+
+---
+
+## Étape 5 — Vérification
+
+1. Aller sur `https://onboarding.optimalpaiement.com/soumettre-releves`
+2. Remplir le formulaire avec un fichier test (PDF quelconque)
+3. Vérifier que le fichier apparaît dans le dossier Google Drive
+4. Si erreur, consulter **Netlify Dashboard → Functions → upload-to-drive → Logs**
+
+---
+
+## Notifications par courriel (optionnel mais recommandé)
+
+Pour recevoir un courriel à chaque soumission :
+
+1. Netlify Dashboard → **Forms** (si Netlify Forms est aussi actif)
+   OU utiliser un webhook Netlify vers un service email
+
+**Alternative simple** : ajouter un appel `nodemailer` ou `EmailJS` dans la fonction
+`upload-to-drive.js` pour envoyer un courriel de notification à `info@optimalpaiement.com`
+à chaque upload réussi. Demander à l'équipe technique si nécessaire.
+
+---
+
+## Dépannage fréquent
+
+| Problème | Solution |
+|----------|----------|
+| `GOOGLE_PRIVATE_KEY` invalide | S'assurer que les `\n` sont bien présents dans la clé. Dans Netlify, coller la clé telle quelle depuis le JSON. |
+| Dossier Drive non trouvé | Vérifier que le dossier est bien partagé avec `client_email` en mode Éditeur. |
+| Erreur 413 (fichier trop grand) | Netlify Functions a une limite de 6MB par défaut. Pour des fichiers plus grands, activer les **Background Functions** dans `netlify.toml`. |
+| La page 404 | Vérifier que `statement-upload.html` est bien à la racine du repo et que `netlify.toml` est présent. |
+
+---
+
+## Contact
+
+Questions techniques : r.chery@optimalpaiement.com
+
+[build]
+  functions = "netlify/functions"
+
+# Increase function body size limit to 50MB to support large statement files
+[functions]
+  node_bundler = "esbuild"
+
+[functions."upload-to-drive"]
+  node_bundler = "esbuild"
+
+# Route /soumettre-releves to the HTML page cleanly
+[[redirects]]
+  from   = "/soumettre-releves"
+  to     = "/statement-upload.html"
+  status = 200
+
+# If someone hits the root of this subdomain, send them to the upload page
+# (remove this rule if onboarding.optimalpaiement.com already has its own index)
+# [[redirects]]
+#   from   = "/"
+#   to     = "/statement-upload.html"
+#   status = 200
