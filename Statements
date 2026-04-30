@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soumettre vos relevés — Optimal Paiement</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Nunito:wght@300;400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --gold:       #C9A96E;
+      --gold-light: #D4B87E;
+      --bg:         #141210;
+      --surface:    #1C1915;
+      --surface2:   #232019;
+      --border:     rgba(201,169,110,0.16);
+      --border-hi:  rgba(201,169,110,0.42);
+      --text:       #EDE8DE;
+      --muted:      #7E7464;
+      --white:      #FFFFFF;
+      --error:      #C96060;
+      --r:          6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Logo */
+    .logo-wrap { text-align: center; padding: 2.8rem 1rem 1.4rem; }
+    .logo-main {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 300;
+      font-size: 3rem;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+      line-height: 1;
+      display: block;
+    }
+    .logo-sub {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.58rem;
+      font-weight: 400;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: block;
+      margin-top: 0.3rem;
+    }
+
+    /* Hero */
+    .hero { text-align: center; padding: 0.8rem 1.5rem 2.4rem; }
+    .hero-title {
+      font-family: 'Cormorant', serif;
+      font-size: 2.2rem;
+      font-weight: 400;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+    .hero-sub {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 300;
+      max-width: 460px;
+      margin: 0 auto;
+      line-height: 1.85;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 400; }
+
+    /* Container */
+    .container { max-width: 620px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    /* Card */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2.4rem 2.4rem 2rem;
+      animation: fadeUp 0.3s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .sec-kicker {
+      font-size: 0.6rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+    .sec-title {
+      font-family: 'Cormorant', serif;
+      font-size: 1.85rem;
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 0.3rem;
+      line-height: 1.2;
+    }
+    .sec-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    /* Fields */
+    .field { margin-bottom: 1.05rem; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    label.lbl {
+      display: block;
+      font-size: 0.67rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.32rem;
+    }
+    label.lbl .req { color: var(--gold); margin-left: 1px; }
+
+    input[type="text"],
+    input[type="email"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.62rem 0.82rem;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 400;
+      transition: border-color 0.18s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input::placeholder { color: var(--muted); opacity: 0.5; }
+    input:focus { border-color: var(--gold); }
+    input.err   { border-color: var(--error) !important; }
+
+    .hint { font-size: 0.68rem; color: var(--muted); margin-top: 0.28rem; line-height: 1.6; }
+    .err-hint { color: var(--error) !important; }
+
+    /* Notice */
+    .notice {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      padding: 0.95rem 1.15rem;
+      background: rgba(201,169,110,0.04);
+      border: 1px solid rgba(201,169,110,0.12);
+      border-radius: var(--r);
+      margin-bottom: 1.8rem;
+      font-size: 0.79rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .notice-icon {
+      width: 18px; height: 18px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(201,169,110,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700;
+      color: var(--gold);
+      margin-top: 0.1rem;
+    }
+    .notice strong { color: var(--text); font-weight: 500; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.6rem 0; }
+
+    /* Upload zone */
+    .upload-label {
+      font-size: 0.67rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.32rem;
+      display: block;
+    }
+    .upload-label .req { color: var(--gold); }
+
+    .upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--r);
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone:hover  { border-color: var(--border-hi); background: rgba(201,169,110,0.025); }
+    .upload-zone.filled { border-color: var(--gold); border-style: solid; background: rgba(201,169,110,0.04); }
+
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+      border: none; padding: 0; background: none;
+    }
+    .uz-icon {
+      width: 36px; height: 36px;
+      border: 1px solid var(--border-hi);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 0.7rem;
+      font-size: 1.1rem;
+      color: var(--gold);
+    }
+    .uz-text { font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
+    .uz-text strong { color: var(--text); font-weight: 500; }
+    .uz-text small { display: block; font-size: 0.67rem; margin-top: 0.2rem; opacity: 0.65; }
+    .uz-done { display: none; font-size: 0.82rem; color: var(--gold); font-weight: 500; line-height: 1.6; }
+    .upload-zone.filled .uz-icon,
+    .upload-zone.filled .uz-text { display: none; }
+    .upload-zone.filled .uz-done { display: block; }
+
+    /* File list */
+    .file-list { margin-top: 0.6rem; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.7rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 0.4rem;
+      font-size: 0.76rem;
+      color: var(--text);
+    }
+    .file-item-icon { color: var(--gold); font-size: 0.85rem; }
+    .file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item-size { color: var(--muted); font-size: 0.67rem; white-space: nowrap; }
+    .file-item-remove {
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0 0.2rem;
+      transition: color 0.15s;
+      background: none;
+      border: none;
+    }
+    .file-item-remove:hover { color: var(--error); }
+
+    .add-more {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+      font-size: 0.72rem;
+      color: var(--gold);
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .add-more:hover { color: var(--gold-light); }
+    .add-more input[type="file"] { display: none; }
+
+    /* Checkbox */
+    .cb-row { display: flex; gap: 0.7rem; align-items: flex-start; }
+    .cb-row input[type="checkbox"] {
+      width: 16px; height: 16px;
+      flex-shrink: 0; margin-top: 3px;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+    .cb-row label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+      cursor: pointer;
+    }
+
+    /* Button */
+    .btn-row {
+      margin-top: 2rem;
+      padding-top: 1.4rem;
+      border-top: 1px solid var(--border);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 0.8rem 1.65rem;
+      border-radius: var(--r);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: none;
+      background: var(--gold);
+      color: var(--bg);
+      transition: background 0.16s;
+    }
+    .btn-submit:hover    { background: var(--gold-light); }
+    .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Error summary */
+    .err-banner {
+      display: none;
+      padding: 0.8rem 1rem;
+      background: rgba(201,96,96,0.08);
+      border: 1px solid rgba(201,96,96,0.25);
+      border-radius: var(--r);
+      font-size: 0.78rem;
+      color: #E08080;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    .err-banner.show { display: block; }
+
+    /* Success */
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 3.5rem 2rem 4.5rem;
+    }
+    .success-screen.active { display: block; animation: fadeUp 0.35s ease; }
+    .success-ring {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,169,110,0.45);
+      background: rgba(201,169,110,0.08);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold);
+      font-size: 1.4rem;
+      margin: 0 auto 1.8rem;
+    }
+    .success-title {
+      font-family: 'Cormorant', serif;
+      font-size: 2.4rem;
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 1.1rem;
+      line-height: 1.2;
+    }
+    .success-body {
+      color: var(--text);
+      font-size: 0.9rem;
+      line-height: 2;
+      max-width: 400px;
+      margin: 0 auto;
+      opacity: 0.85;
+    }
+    .success-body strong { color: var(--white); font-weight: 500; opacity: 1; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .form-card { padding: 1.6rem 1.3rem 1.4rem; }
+      .row-2     { grid-template-columns: 1fr; }
+      .hero-title { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Logo -->
+<div class="logo-wrap">
+  <span class="logo-main">Optimal</span>
+  <span class="logo-sub">paiement</span>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <h1 class="hero-title">Soumettez vos relevés</h1>
+  <p class="hero-sub">
+    Faites-nous parvenir vos relevés de façon sécurisée.<br>
+    <strong>Nous les analyserons et vous préparerons une offre adaptée à votre réalité.</strong>
+  </p>
+</div>
+
+<div class="container">
+
+  <!-- FORM CARD -->
+  <div class="form-card" id="formCard">
+
+    <div class="sec-kicker">Analyse confidentielle</div>
+    <h2 class="sec-title">Vos informations</h2>
+    <p class="sec-desc">Quelques détails pour personnaliser notre analyse et vous revenir rapidement.</p>
+
+    <div class="notice">
+      <span class="notice-icon">i</span>
+      <div>Vos relevés sont traités de façon <strong>strictement confidentielle</strong> et utilisés uniquement dans le cadre de notre analyse tarifaire.</div>
+    </div>
+
+    <!--
+      NETLIFY FORMS:
+      - The `netlify` attribute on the <form> tag registers it automatically with Netlify.
+      - The hidden input `form-name` is required for AJAX submission to work.
+      - File uploads are stored in your Netlify dashboard under Forms → statement-upload.
+      - To receive email notifications: Netlify Dashboard → Forms → statement-upload → Form notifications → Add notification → Email.
+    -->
+    <form
+      name="statement-upload"
+      method="POST"
+      enctype="multipart/form-data"
+      data-netlify="true"
+      data-netlify-honeypot="bot-field"
+      id="uploadForm"
+      onsubmit="handleSubmit(event)"
+    >
+      <!-- Required hidden fields for Netlify Forms -->
+      <input type="hidden" name="form-name" value="statement-upload">
+      <!-- Honeypot anti-spam field (hidden from real users) -->
+      <p style="display:none"><label>Ne pas remplir : <input name="bot-field"></label></p>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="lbl" for="firstName">Prénom <span class="req">*</span></label>
+          <input type="text" id="firstName" name="prenom" placeholder="Jean">
+        </div>
+        <div class="field">
+          <label class="lbl" for="lastName">Nom <span class="req">*</span></label>
+          <input type="text" id="lastName" name="nom" placeholder="Tremblay">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="emailField">Courriel <span class="req">*</span></label>
+        <input type="email" id="emailField" name="courriel" placeholder="vous@votreentreprise.com">
+        <p class="hint">Nous vous enverrons notre analyse à cette adresse.</p>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="companyField">Nom de l'entreprise <span class="req">*</span></label>
+        <input type="text" id="companyField" name="entreprise" placeholder="Nom légal ou commercial">
+      </div>
+
+      <hr class="divider">
+
+      <!-- File upload -->
+      <div class="field">
+        <span class="upload-label">Relevé(s) de traitement <span class="req">*</span></span>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('mainFile').click()">
+          <input type="file" id="mainFile" name="releve" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="addFiles(this.files)">
+          <div class="uz-icon">+</div>
+          <div class="uz-text">
+            <strong>Cliquez pour téléverser</strong> ou glissez-déposez
+            <small>PDF, JPG ou PNG &nbsp;·&nbsp; Max. 10 Mo par fichier</small>
+          </div>
+          <div class="uz-done">✓ &nbsp;Fichier(s) sélectionné(s)</div>
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <!-- Hidden inputs for additional files will be injected here -->
+        <div id="extraInputs"></div>
+
+        <button type="button" class="add-more" id="addMoreBtn" style="display:none" onclick="document.getElementById('extraFile').click()">
+          <input type="file" id="extraFile" name="releve_2" accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(this.files)" style="display:none">
+          + Ajouter un autre relevé
+        </button>
+
+        <p class="hint" style="margin-top:0.5rem">Idéalement les 2–3 derniers relevés mensuels de votre processeur actuel.</p>
+      </div>
+
+      <hr class="divider">
+
+      <div class="field">
+        <div class="cb-row">
+          <input type="checkbox" id="consent" name="consentement" value="oui">
+          <label for="consent">Je consens à ce qu'Optimal Paiement utilise ces informations dans le cadre d'une analyse tarifaire confidentielle.</label>
+        </div>
+      </div>
+
+      <div class="err-banner" id="errBanner"></div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn-submit" id="submitBtn">Soumettre mes relevés</button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-ring">✓</div>
+    <h2 class="success-title">Relevés reçus !</h2>
+    <p class="success-body">
+      Merci d'avoir soumis vos relevés.<br>
+      Notre équipe les analysera et vous fera parvenir<br>
+      <strong>une offre personnalisée dans les 24 heures ouvrables.</strong><br><br>
+      À très bientôt,<br>
+      <strong>L'équipe Optimal Paiement</strong>
+    </p>
+  </div>
+
+</div>
+
+<script>
+  /* ── File management ──────────────────────────────────── */
+  let selectedFiles = [];
+
+  function addFiles(fileList) {
+    for (const file of fileList) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`"${file.name}" dépasse la limite de 10 Mo.`);
+        continue;
+      }
+      // avoid duplicates
+      if (!selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
+        selectedFiles.push(file);
+      }
+    }
+    renderFileList();
+    syncNetlifyInputs();
+  }
+
+  function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderFileList();
+    syncNetlifyInputs();
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024)       return bytes + ' o';
+    if (bytes < 1024*1024)  return (bytes/1024).toFixed(0) + ' Ko';
+    return (bytes/(1024*1024)).toFixed(1) + ' Mo';
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('fileList');
+    const zone = document.getElementById('uploadZone');
+    const addMoreBtn = document.getElementById('addMoreBtn');
+
+    list.innerHTML = '';
+
+    if (selectedFiles.length === 0) {
+      zone.classList.remove('filled');
+      addMoreBtn.style.display = 'none';
+      return;
+    }
+
+    zone.classList.add('filled');
+    addMoreBtn.style.display = 'inline-flex';
+
+    selectedFiles.forEach((file, i) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <span class="file-item-icon">📄</span>
+        <span class="file-item-name">${file.name}</span>
+        <span class="file-item-size">${formatSize(file.size)}</span>
+        <button type="button" class="file-item-remove" onclick="removeFile(${i})" title="Retirer">×</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  /*
+    Netlify Forms with file uploads works best with a standard form POST.
+    We use native form submission (no AJAX) to ensure files are properly
+    transmitted. The success page is shown via a redirect or inline swap.
+    For simplicity and reliability with Netlify, we do a native POST and
+    Netlify redirects to /?success=true on submission.
+  */
+  function syncNetlifyInputs() {
+    // Netlify handles the primary file input (id="mainFile" name="releve")
+    // For the visual file list we just ensure the primary input has a file.
+    // Additional files beyond the first are named releve_2, releve_3, etc.
+    // Because we can't programmatically assign files to input[type=file],
+    // we keep the native file inputs and just manage visibility.
+  }
+
+  /* ── Check for ?success=true on page load ─────────────── */
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.location.search.includes('success=true')) {
+      document.getElementById('formCard').style.display = 'none';
+      document.querySelector('.hero-title').textContent = 'Merci !';
+      document.querySelector('.hero-sub').style.display = 'none';
+      document.getElementById('successScreen').classList.add('active');
+    }
+  });
+
+  /* ── Form validation + submit ─────────────────────────── */
+  function handleSubmit(e) {
+    const errors = [];
+    const errBanner = document.getElementById('errBanner');
+    errBanner.classList.remove('show');
+
+    // Clear previous errors
+    document.querySelectorAll('input.err').forEach(el => el.classList.remove('err'));
+
+    const firstName = document.getElementById('firstName');
+    const lastName  = document.getElementById('lastName');
+    const email     = document.getElementById('emailField');
+    const company   = document.getElementById('companyField');
+    const consent   = document.getElementById('consent');
+    const mainFile  = document.getElementById('mainFile');
+
+    if (!firstName.value.trim()) { firstName.classList.add('err'); errors.push('Prénom requis.'); }
+    if (!lastName.value.trim())  { lastName.classList.add('err');  errors.push('Nom requis.'); }
+
+    const emailVal = email.value.trim();
+    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      email.classList.add('err'); errors.push('Courriel invalide.');
+    }
+
+    if (!company.value.trim()) { company.classList.add('err'); errors.push("Nom de l'entreprise requis."); }
+
+    if (!mainFile.files || mainFile.files.length === 0) {
+      errors.push('Veuillez téléverser au moins un relevé.');
+    }
+
+    if (!consent.checked) {
+      errors.push('Veuillez cocher la case de consentement.');
+    }
+
+    if (errors.length > 0) {
+      e.preventDefault();
+      errBanner.innerHTML = errors.join('<br>');
+      errBanner.classList.add('show');
+      window.scrollTo({ top: errBanner.offsetTop - 20, behavior: 'smooth' });
+      return;
+    }
+
+    // Let the native form POST proceed — Netlify will handle it
+    const btn = document.getElementById('submitBtn');
+    btn.disabled    = true;
+    btn.textContent = 'Envoi en cours…';
+  }
+</script>
+
+</body>
+</html>
