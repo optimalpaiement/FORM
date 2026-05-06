@@ -1,0 +1,283 @@
+// netlify/functions/upload-to-drive.js
+// -----------------------------------------------------------------------------
+// Optimal Paiement — statement upload endpoint
+//
+// Three phases (selected via the `phase` form field):
+//   1. init     → create a per-prospect subfolder in Google Drive,
+//                 drop a metadata file inside, return its folderId
+//   2. upload   → upload one file into that folderId (called once per file)
+//   3. finalize → send a notification email summarising the submission
+//
+// Required env vars (all set in Netlify → Site config → Environment variables):
+//   GOOGLE_CLIENT_EMAIL       — service account email
+//   GOOGLE_PRIVATE_KEY        — full private key, including BEGIN/END lines
+//   GOOGLE_DRIVE_FOLDER_ID    — root "Relevés Prospects" folder ID
+//
+// Optional env vars (notification email — skipped silently if absent):
+//   SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS
+//   SMTP_FROM                 — e.g. "Optimal Paiement <noreply@…>"
+//   NOTIFICATION_EMAILS       — comma-separated; defaults to info@optimalpaiement.com
+// -----------------------------------------------------------------------------
+
+const { google } = require('googleapis');
+const Busboy = require('busboy');
+const nodemailer = require('nodemailer');
+const { Readable } = require('stream');
+
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB hard cap (Netlify body limit is 6 MB; this is a safety net)
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const sanitize = (str) =>
+  String(str || '')
+    .trim()
+    .replace(/[\/\\<>:"|?*\x00-\x1F]/g, '')
+    .slice(0, 60);
+
+const formatFolderName = ({ lastName, firstName, company }) => {
+  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return `${date} — ${sanitize(lastName)}, ${sanitize(firstName)} — ${sanitize(company)}`;
+};
+
+const getDrive = () => {
+  const auth = new google.auth.JWT({
+    email: process.env.GOOGLE_CLIENT_EMAIL,
+    key: (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/drive']
+  });
+  return google.drive({ version: 'v3', auth });
+};
+
+const json = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  },
+  body: JSON.stringify(body)
+});
+
+// Parse multipart/form-data → { fields, files }
+const parseMultipart = (event) =>
+  new Promise((resolve, reject) => {
+    const fields = {};
+    const files = [];
+    const contentType =
+      event.headers['content-type'] || event.headers['Content-Type'] || '';
+
+    if (!contentType.startsWith('multipart/form-data')) {
+      return reject(new Error('Expected multipart/form-data'));
+    }
+
+    const bb = Busboy({ headers: { 'content-type': contentType }, limits: { fileSize: MAX_FILE_BYTES } });
+
+    bb.on('field', (name, value) => {
+      fields[name] = value;
+    });
+
+    bb.on('file', (name, stream, info) => {
+      const chunks = [];
+      let truncated = false;
+      stream.on('data', (d) => chunks.push(d));
+      stream.on('limit', () => {
+        truncated = true;
+      });
+      stream.on('end', () => {
+        if (truncated) return; // Drop oversize file silently; surfaced as error below
+        files.push({
+          fieldname: name,
+          filename: info.filename,
+          mimeType: info.mimeType,
+          buffer: Buffer.concat(chunks)
+        });
+      });
+    });
+
+    bb.on('error', reject);
+    bb.on('finish', () => resolve({ fields, files }));
+
+    const body = event.isBase64Encoded
+      ? Buffer.from(event.body, 'base64')
+      : Buffer.from(event.body || '', 'utf8');
+    bb.end(body);
+  });
+
+// ── Notification email ───────────────────────────────────────────────────────
+const sendNotification = async ({
+  firstName,
+  lastName,
+  email,
+  company,
+  fileCount,
+  folderId,
+  folderName
+}) => {
+  if (!process.env.SMTP_HOST) return; // SMTP not configured → skip silently
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+
+  const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+  const recipients = (process.env.NOTIFICATION_EMAILS || 'info@optimalpaiement.com')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean);
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || `"Optimal Paiement Forms" <${process.env.SMTP_USER}>`,
+    to: recipients,
+    replyTo: email,
+    subject: `Nouveau prospect — ${company} (${fileCount} fichier${fileCount > 1 ? 's' : ''})`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#f7f5f0">
+        <h2 style="color:#C9A96E;font-weight:400;margin:0 0 16px;font-size:22px">Nouveau prospect — relevés reçus</h2>
+        <p style="font-size:14px;line-height:1.7;color:#333">
+          <strong>${firstName} ${lastName}</strong> de <strong>${company}</strong> vient de soumettre <strong>${fileCount} fichier${fileCount > 1 ? 's' : ''}</strong> via le portail.
+        </p>
+        <table style="font-size:13px;border-collapse:collapse;margin:18px 0;width:100%">
+          <tr><td style="padding:6px 0;color:#7E7464;width:110px">Nom</td><td><strong>${firstName} ${lastName}</strong></td></tr>
+          <tr><td style="padding:6px 0;color:#7E7464">Entreprise</td><td><strong>${company}</strong></td></tr>
+          <tr><td style="padding:6px 0;color:#7E7464">Courriel</td><td><a href="mailto:${email}" style="color:#C9A96E">${email}</a></td></tr>
+          <tr><td style="padding:6px 0;color:#7E7464">Fichiers reçus</td><td><strong>${fileCount}</strong></td></tr>
+        </table>
+        <p style="margin:24px 0">
+          <a href="${folderUrl}" style="display:inline-block;background:#C9A96E;color:#141210;padding:12px 22px;border-radius:6px;text-decoration:none;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;font-weight:500">
+            Ouvrir le dossier Drive →
+          </a>
+        </p>
+        <p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #ddd;padding-top:12px">
+          Dossier : ${folderName}
+        </p>
+      </div>
+    `
+  });
+};
+
+// ── Phase handlers ───────────────────────────────────────────────────────────
+const phaseInit = async (drive, fields) => {
+  const { firstName, lastName, email, company } = fields;
+  if (!firstName || !lastName || !email || !company) {
+    return json(400, { message: 'Champs manquants : prénom, nom, courriel, entreprise.' });
+  }
+  const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!rootId) return json(500, { message: 'GOOGLE_DRIVE_FOLDER_ID non configuré.' });
+
+  const folderName = formatFolderName({ lastName, firstName, company });
+
+  const folder = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [rootId]
+    },
+    fields: 'id, name, webViewLink'
+  });
+
+  // Drop a small metadata file so the prospect's info is visible at a glance in Drive
+  await drive.files.create({
+    requestBody: {
+      name: '_prospect-info.txt',
+      parents: [folder.data.id]
+    },
+    media: {
+      mimeType: 'text/plain',
+      body: `Prénom    : ${firstName}\nNom       : ${lastName}\nEntreprise: ${company}\nCourriel  : ${email}\nReçu le   : ${new Date().toISOString()}\n`
+    },
+    fields: 'id'
+  });
+
+  return json(200, {
+    folderId: folder.data.id,
+    folderName: folder.data.name,
+    folderLink: folder.data.webViewLink
+  });
+};
+
+const phaseUpload = async (drive, fields, files) => {
+  const { folderId } = fields;
+  if (!folderId) return json(400, { message: 'folderId manquant.' });
+  if (files.length === 0) return json(400, { message: 'Aucun fichier reçu (ou fichier > 8 Mo).' });
+
+  const file = files[0];
+  const uploaded = await drive.files.create({
+    requestBody: {
+      name: file.filename || 'releve.pdf',
+      parents: [folderId]
+    },
+    media: {
+      mimeType: file.mimeType || 'application/octet-stream',
+      body: Readable.from(file.buffer)
+    },
+    fields: 'id, name, webViewLink'
+  });
+
+  return json(200, {
+    fileId: uploaded.data.id,
+    fileName: uploaded.data.name,
+    fileLink: uploaded.data.webViewLink
+  });
+};
+
+const phaseFinalize = async (fields) => {
+  const { firstName, lastName, email, company, folderId, folderName, fileCount } = fields;
+  if (!folderId) return json(400, { message: 'folderId manquant.' });
+
+  try {
+    await sendNotification({
+      firstName,
+      lastName,
+      email,
+      company,
+      fileCount: parseInt(fileCount || '0', 10),
+      folderId,
+      folderName
+    });
+  } catch (err) {
+    // Don't fail the whole submission if email fails — the files are already in Drive.
+    console.error('Notification email failed:', err.message);
+    return json(200, { ok: true, emailSent: false, warning: err.message });
+  }
+
+  return json(200, { ok: true, emailSent: !!process.env.SMTP_HOST });
+};
+
+// ── Main handler ─────────────────────────────────────────────────────────────
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }, body: '' };
+  }
+  if (event.httpMethod !== 'POST') {
+    return json(405, { message: 'Method not allowed' });
+  }
+
+  try {
+    const { fields, files } = await parseMultipart(event);
+
+    // Honeypot — bots fill the hidden "website" field, real humans don't.
+    // We return 200 (not an error) so bots don't learn to retry differently.
+    if (fields.website) {
+      console.warn('Honeypot triggered, dropping submission.');
+      return json(200, { ok: true });
+    }
+
+    const phase = fields.phase;
+    const drive = getDrive();
+
+    if (phase === 'init') return await phaseInit(drive, fields);
+    if (phase === 'upload') return await phaseUpload(drive, fields, files);
+    if (phase === 'finalize') return await phaseFinalize(fields);
+
+    return json(400, { message: `Phase inconnue : "${phase}". Attendu : init, upload ou finalize.` });
+  } catch (err) {
+    console.error('Function error:', err);
+    return json(500, { message: err.message || 'Erreur interne du serveur.' });
+  }
+};
